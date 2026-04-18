@@ -1,0 +1,198 @@
+# Monitoring Configuration Overlay for KubeClaw
+# Use with: helm install kubeclaw ./helm/kubeclaw/ -f values.yaml -f values-monitoring.yaml
+
+monitoring:
+  enabled: true
+
+  # Prometheus Configuration
+  prometheus:
+    enabled: true
+    retention: "15d"
+    scrapeInterval: "30s"
+    evaluationInterval: "30s"
+
+    # kube-prometheus-stack dependencies
+    kubeStateMetrics:
+      enabled: true
+    nodeExporter:
+      enabled: true
+    prometheusOperator:
+      enabled: true
+
+    # Prometheus server configuration
+    server:
+      resources:
+        requests:
+          memory: "2Gi"
+          cpu: "500m"
+        limits:
+          memory: "4Gi"
+          cpu: "1000m"
+      persistentVolume:
+        enabled: true
+        size: 50Gi
+        storageClassName: "nebius-ssd"
+      service:
+        type: ClusterIP
+        port: 9090
+
+    # Alert rules
+    alertmanager:
+      enabled: true
+      retention: "120h"
+      resources:
+        requests:
+          memory: "256Mi"
+          cpu: "100m"
+        limits:
+          memory: "512Mi"
+          cpu: "200m"
+
+    # Service Monitor for OpenClaw
+    serviceMonitor:
+      enabled: true
+      namespace: kubeclaw
+      interval: 30s
+      scrapeTimeout: 10s
+      labels:
+        release: prometheus
+      jobLabel: prometheus
+
+  # Grafana Configuration
+  grafana:
+    enabled: true
+    adminPassword: "changeme"  # CHANGE IN PRODUCTION
+    adminUser: "admin"
+
+    resources:
+      requests:
+        memory: "512Mi"
+        cpu: "250m"
+      limits:
+        memory: "1Gi"
+        cpu: "500m"
+
+    # Grafana persistence
+    persistence:
+      enabled: true
+      size: 10Gi
+      storageClassName: "nebius-ssd"
+
+    # Data source configuration
+    datasources:
+      prometheus:
+        enabled: true
+        url: "http://prometheus:9090"
+        isDefault: true
+
+    # Pre-configured dashboards
+    dashboards:
+      enabled: true
+      defaultDashboards:
+        - prometheus-stats
+        - kubernetes-cluster
+        - kubernetes-resource
+
+    # Grafana plugins
+    plugins:
+      - grafana-piechart-panel
+      - grafana-worldmap-panel
+
+    service:
+      type: ClusterIP
+      port: 80
+      targetPort: 3000
+
+# Custom Prometheus scrape configs for OpenClaw
+prometheusRules:
+  - name: openclaw-health
+    interval: 30s
+    rules:
+      # Alert: Pod CrashLooping
+      - alert: OpenClawCrashLooping
+        expr: |
+          rate(kube_pod_container_status_restarts_total{pod=~"openclaw.*"}[15m]) > 0.1
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "OpenClaw pod is crash looping"
+          description: "Pod {{ $labels.pod }} in namespace {{ $labels.namespace }} is restarting frequently"
+
+      # Alert: High Memory Usage
+      - alert: OpenClawHighMemory
+        expr: |
+          (container_memory_usage_bytes{pod=~"openclaw.*"} / 1073741824) / (container_spec_memory_limit_bytes{pod=~"openclaw.*"} / 1073741824) > 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "OpenClaw memory usage is high (>80%)"
+          description: "Pod {{ $labels.pod }} memory usage: {{ $value | humanizePercentage }}"
+
+      # Alert: High CPU Usage
+      - alert: OpenClawHighCPU
+        expr: |
+          rate(container_cpu_usage_seconds_total{pod=~"openclaw.*"}[5m]) > 0.9
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "OpenClaw CPU usage is high (>90%)"
+          description: "Pod {{ $labels.pod }} CPU usage: {{ $value | humanizePercentage }}"
+
+      # Alert: PVC Almost Full
+      - alert: OpenClawPVCAlmostFull
+        expr: |
+          (kubelet_volume_stats_available_bytes{persistentvolumeclaim=~"openclaw.*"} / kubelet_volume_stats_capacity_bytes{persistentvolumeclaim=~"openclaw.*"}) < 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "OpenClaw PVC is almost full (<10% available)"
+          description: "PVC {{ $labels.persistentvolumeclaim }} has less than 10% available space"
+
+      # Alert: GPU Memory Exhaustion (if GPU enabled)
+      - alert: OpenClawGPUMemoryExhaustion
+        expr: |
+          (nvidia_smi_memory_used_bytes{pod=~"openclaw.*"} / nvidia_smi_memory_free_bytes{pod=~"openclaw.*"}) > 0.95
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "OpenClaw GPU memory is exhausted (>95%)"
+          description: "GPU memory usage for pod {{ $labels.pod }}: {{ $value | humanizePercentage }}"
+
+# Service Monitor for scraping OpenClaw metrics
+serviceMonitor:
+  enabled: true
+  name: openclaw-monitor
+  namespace: kubeclaw
+  interval: 30s
+  scrapeTimeout: 10s
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 30s
+  labels:
+    release: prometheus
+
+# Recording rules for common metrics
+recordingRules:
+  - name: openclaw.recording
+    interval: 30s
+    rules:
+      # Average request duration
+      - record: openclaw:request_duration:avg5m
+        expr: |
+          avg_over_time(histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="openclaw"}[5m]))[5m:1m])
+
+      # Request rate
+      - record: openclaw:request_rate:5m
+        expr: |
+          rate(http_requests_total{job="openclaw"}[5m])
+
+      # Error rate
+      - record: openclaw:error_rate:5m
+        expr: |
+          rate(http_requests_total{job="openclaw", status=~"5.."}[5m])

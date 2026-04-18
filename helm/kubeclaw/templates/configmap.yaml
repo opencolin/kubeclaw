@@ -1,0 +1,47 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "kubeclaw.fullname" . }}-config
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "kubeclaw.labels" . | nindent 4 }}
+data:
+  openclaw.config.json: |
+    {
+      "model": "{{ .Values.openclaw.model }}",
+      "thinkingMode": "{{ .Values.openclaw.thinkingMode }}",
+      "workspace": {
+        "path": "{{ .Values.openclaw.workspace.path }}",
+        "maxSize": "{{ .Values.openclaw.workspace.maxSize }}"
+      },
+      "session": {
+        "timeout": {{ .Values.openclaw.sessionTimeout }},
+        "maxConcurrent": {{ .Values.openclaw.maxConcurrentSessions }}
+      },
+      "api": {
+        "port": 18793,
+        "controlPort": 18789
+      }
+    }
+
+  logging.config.json: |
+    {
+      "logLevel": "{{ index .Values.env 0 "value" | default "info" }}",
+      "format": "json",
+      "outputs": [
+        "stdout"
+      ]
+    }
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ .Values.openclaw.apiKey.secretName }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "kubeclaw.labels" . | nindent 4 }}
+type: Opaque
+data:
+  # Base64 encoded placeholder - replace with actual API key
+  anthropic-api-key: {{ .Values.openclaw.apiKey.secretValue | b64enc | default "Y2hhbmdlbWU=" }}

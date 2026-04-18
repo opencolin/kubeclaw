@@ -1,0 +1,116 @@
+# KubeClaw Production Values
+# Production-ready configuration with security hardening and monitoring
+
+namespace: kubeclaw
+
+image:
+  repository: cr.nebius.cloud/opencloudconsole/openclaw
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+replicaCount: 1
+strategy:
+  type: Recreate
+
+resources:
+  requests:
+    memory: "4Gi"
+    cpu: "2"
+    ephemeralStorage: "2Gi"
+  limits:
+    memory: "8Gi"
+    cpu: "4"
+    ephemeralStorage: "5Gi"
+
+persistence:
+  enabled: true
+  storageClass: "nebius-ssd"
+  accessMode: ReadWriteOnce
+  size: 50Gi
+  mountPath: /home/openclaw
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 18793
+
+ingress:
+  enabled: true
+  className: "nebius"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  hosts:
+    - host: openclaw.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: openclaw-tls
+      hosts:
+        - openclaw.example.com
+
+env:
+  - name: LOG_LEVEL
+    value: "info"
+  - name: NODE_ENV
+    value: "production"
+  - name: PORT
+    value: "18793"
+  - name: CONTROL_PORT
+    value: "18789"
+
+openclaw:
+  model: "claude-sonnet-4-20250514"
+  thinkingMode: "enabled"
+  apiKey:
+    secretName: openclaw-secrets
+    secretKey: anthropic-api-key
+
+gpu:
+  enabled: false
+
+monitoring:
+  enabled: true
+  prometheus:
+    enabled: true
+    retention: "15d"
+  grafana:
+    enabled: true
+    adminPassword: "change-me-in-production"
+  alertmanager:
+    enabled: true
+    retention: "120h"
+
+networkPolicy:
+  enabled: true
+
+rbac:
+  create: true
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: true
+
+affinity:
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: nebius.com/workload-type
+              operator: In
+              values:
+                - general
+
+labels:
+  app: openclaw
+  environment: production

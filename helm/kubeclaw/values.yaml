@@ -1,0 +1,266 @@
+# KubeClaw Helm Chart Values
+# Default configuration for OpenClaw/NemoClaw on Nebius Managed Kubernetes
+
+# Namespace and naming
+namespace: kubeclaw
+nameOverride: ""
+fullnameOverride: ""
+
+# OpenClaw Image Configuration
+# Nebius container registry URL is regional: cr.<REGION>.nebius.cloud/<REGISTRY_ID>
+# Regions: eu-north1, eu-west1, us-central1. Replace <REGISTRY_ID> with your
+# actual registry ID (see: nebius cr registry list).
+image:
+  repository: cr.eu-north1.nebius.cloud/<REGISTRY_ID>/openclaw
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+imagePullSecrets: []
+
+# Service Account
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# Pod Annotations and Security Context
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "9090"
+  prometheus.io/path: "/metrics"
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: true
+
+# Replicas (OpenClaw is single-instance)
+replicaCount: 1
+strategy:
+  type: Recreate
+
+# Resource Requests and Limits
+resources:
+  requests:
+    memory: "4Gi"
+    cpu: "2"
+    ephemeralStorage: "2Gi"
+  limits:
+    memory: "8Gi"
+    cpu: "4"
+    ephemeralStorage: "5Gi"
+
+# Autoscaling (not recommended for OpenClaw, included for reference)
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 1
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+# Node Affinity and Tolerations
+affinity:
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: nebius.com/workload-type
+              operator: In
+              values:
+                - general
+tolerations: []
+
+# Persistent Storage Configuration
+persistence:
+  enabled: true
+  storageClass: "nebius-ssd"
+  accessMode: ReadWriteOnce
+  size: 50Gi
+  mountPath: /home/openclaw
+  annotations: {}
+
+# Service Configuration
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 18793  # OpenClaw canvas server port
+  annotations: {}
+  loadBalancerIP: ""
+
+# Ingress Configuration
+ingress:
+  enabled: false
+  className: "nebius"
+  annotations: {}
+    # nginx.ingress.kubernetes.io/rewrite-target: /
+  hosts:
+    - host: openclaw.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+    # - secretName: openclaw-tls
+    #   hosts:
+    #     - openclaw.example.com
+
+# Environment Variables
+env:
+  - name: LOG_LEVEL
+    value: "info"
+  - name: NODE_ENV
+    value: "production"
+  - name: PORT
+    value: "18793"
+  - name: CONTROL_PORT
+    value: "18789"
+
+# Secrets management (API keys, credentials)
+secrets:
+  enabled: true
+  # Store in separate secret, reference here
+  externalSecrets:
+    enabled: false
+    # Use external-secrets-operator for secure credential management
+  envFrom: []
+    # - secretRef:
+    #     name: openclaw-secrets
+
+# OpenClaw Configuration
+openclaw:
+  # Model configuration
+  model: "claude-sonnet-4-20250514"
+  thinkingMode: "enabled"
+
+  # API Configuration
+  apiKey:
+    secretName: openclaw-secrets
+    secretKey: anthropic-api-key
+
+  # Workspace and agent settings
+  workspace:
+    path: /home/openclaw/workspace
+    maxSize: "10Gi"
+
+  # Session management
+  sessionTimeout: 3600
+  maxConcurrentSessions: 10
+
+# GPU Configuration (disabled by default)
+gpu:
+  enabled: false
+  type: "nvidia.com/gpu"
+  count: 1
+  # Nebius GPU node pool name
+  nodePool: "gpu-h100"
+  # GPU Resource Limits
+  resources:
+    limits:
+      nvidia.com/gpu: 1
+
+# Monitoring and Observability
+monitoring:
+  enabled: true
+  prometheus:
+    enabled: true
+    retention: "15d"
+    scrapeInterval: "30s"
+    evaluationInterval: "30s"
+  grafana:
+    enabled: true
+    adminPassword: "changeme"  # CHANGE IN PRODUCTION
+    persistence:
+      enabled: true
+      size: 10Gi
+  alertmanager:
+    enabled: true
+    retention: "120h"
+
+# Liveness and Readiness Probes
+livenessProbe:
+  httpGet:
+    path: /health
+    port: 18793
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /ready
+    port: 18793
+  initialDelaySeconds: 10
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 2
+
+# Security Policies
+networkPolicy:
+  enabled: true
+  policyTypes:
+    - Ingress
+    - Egress
+  # Restrict ingress to necessary ports only
+  ingressRules:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: kubeclaw
+      ports:
+        - protocol: TCP
+          port: 18793
+        - protocol: TCP
+          port: 18789
+  # Allow egress to necessary services
+  egressRules:
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 443
+        - protocol: TCP
+          port: 53
+        - protocol: UDP
+          port: 53
+
+# Pod Security Policy (for K8s < 1.25)
+podSecurityPolicy:
+  enabled: false
+
+# RBAC Configuration
+rbac:
+  create: true
+  rules:
+    - apiGroups: [""]
+      resources: ["pods", "pods/log"]
+      verbs: ["get", "list", "watch"]
+    - apiGroups: ["batch"]
+      resources: ["jobs"]
+      verbs: ["create", "get", "list", "watch", "patch"]
+    - apiGroups: [""]
+      resources: ["persistentvolumes", "persistentvolumeclaims"]
+      verbs: ["get", "list"]
+
+# Debug and Troubleshooting
+debug:
+  enabled: false
+  # Enable verbose logging
+  verboseLogging: false
+
+# Metadata
+labels:
+  app: openclaw
+  version: "1.0.0"
+
+# Custom configurations
+customConfig: {}
+  # Add custom OpenClaw configuration here

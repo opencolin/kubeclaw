@@ -1,0 +1,33 @@
+apiVersion: v2
+name: kubeclaw
+description: Production-ready Helm chart for OpenClaw & NemoClaw on Nebius Managed Kubernetes
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+
+keywords:
+  - openclaw
+  - nemoclaw
+  - kubernetes
+  - nebius
+  - ai-agent
+
+home: https://github.com/opencolin/kubeclaw
+sources:
+  - https://github.com/opencolin/kubeclaw
+  - https://github.com/chrisbattarbee/openclaw-helm
+  - https://github.com/NVIDIA/NemoClaw
+
+maintainers:
+  - name: KubeClaw Contributors
+    email: support@example.com
+
+dependencies:
+  - name: kube-prometheus-stack
+    version: "59.0.0"
+    repository: https://prometheus-community.github.io/helm-charts
+    condition: monitoring.prometheus.enabled
+  - name: grafana
+    version: "8.0.0"
+    repository: https://grafana.github.io/helm-charts
+    condition: monitoring.grafana.enabled

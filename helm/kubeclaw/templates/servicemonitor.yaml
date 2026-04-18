@@ -1,0 +1,116 @@
+{{- if .Values.monitoring.enabled }}
+{{- if .Values.monitoring.prometheus.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "kubeclaw.fullname" . }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "kubeclaw.labels" . | nindent 4 }}
+    {{- if .Values.serviceMonitor.labels }}
+    {{- toYaml .Values.serviceMonitor.labels | nindent 4 }}
+    {{- end }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "kubeclaw.selectorLabels" . | nindent 6 }}
+  endpoints:
+  - port: http
+    interval: {{ .Values.monitoring.prometheus.scrapeInterval }}
+    scrapeTimeout: 10s
+    path: /metrics
+    relabelings:
+    - sourceLabels: [__meta_kubernetes_pod_name]
+      targetLabel: pod
+    - sourceLabels: [__meta_kubernetes_namespace]
+      targetLabel: namespace
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ include "kubeclaw.fullname" . }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "kubeclaw.labels" . | nindent 4 }}
+    prometheus: kube-prometheus
+spec:
+  groups:
+  - name: openclaw.rules
+    interval: {{ .Values.monitoring.prometheus.evaluationInterval }}
+    rules:
+    # Alert: Pod CrashLooping
+    - alert: OpenClawCrashLooping
+      expr: |
+        rate(kube_pod_container_status_restarts_total{pod=~"openclaw.*", namespace="{{ .Values.namespace }}"}[15m]) > 0.1
+      for: 5m
+      labels:
+        severity: critical
+        component: openclaw
+      annotations:
+        summary: "OpenClaw pod is crash looping"
+        description: "Pod {{ $labels.pod }} in namespace {{ $labels.namespace }} is restarting frequently"
+
+    # Alert: Pod Not Running
+    - alert: OpenClawNotRunning
+      expr: |
+        kube_pod_status_phase{pod=~"openclaw.*", namespace="{{ .Values.namespace }}", phase!="Running"} == 1
+      for: 5m
+      labels:
+        severity: critical
+        component: openclaw
+      annotations:
+        summary: "OpenClaw pod is not running"
+        description: "Pod {{ $labels.pod }} is in phase {{ $labels.phase }}"
+
+    # Alert: High Memory Usage
+    - alert: OpenClawHighMemory
+      expr: |
+        (container_memory_usage_bytes{pod=~"openclaw.*", namespace="{{ .Values.namespace }}"} / 1073741824) > 6.4
+      for: 5m
+      labels:
+        severity: warning
+        component: openclaw
+      annotations:
+        summary: "OpenClaw memory usage is high (>80%)"
+        description: "Pod {{ $labels.pod }} memory usage: {{ $value | humanize }}Gi"
+
+    # Alert: High CPU Usage
+    - alert: OpenClawHighCPU
+      expr: |
+        rate(container_cpu_usage_seconds_total{pod=~"openclaw.*", namespace="{{ .Values.namespace }}"}[5m]) > 3.2
+      for: 5m
+      labels:
+        severity: warning
+        component: openclaw
+      annotations:
+        summary: "OpenClaw CPU usage is high (>80%)"
+        description: "Pod {{ $labels.pod }} CPU usage: {{ $value | humanize }}"
+
+    # Alert: PVC Almost Full
+    - alert: OpenClawPVCAlmostFull
+      expr: |
+        (kubelet_volume_stats_available_bytes{persistentvolumeclaim=~"openclaw.*", namespace="{{ .Values.namespace }}"} / kubelet_volume_stats_capacity_bytes{persistentvolumeclaim=~"openclaw.*", namespace="{{ .Values.namespace }}"}) < 0.1
+      for: 5m
+      labels:
+        severity: warning
+        component: openclaw
+      annotations:
+        summary: "OpenClaw PVC is almost full (<10% available)"
+        description: "PVC {{ $labels.persistentvolumeclaim }} has {{ $value | humanizePercentage }} available"
+
+    {{- if .Values.gpu.enabled }}
+    # Alert: GPU Memory Exhaustion (if GPU enabled)
+    - alert: OpenClawGPUMemoryExhaustion
+      expr: |
+        (nvidia_smi_memory_used_bytes{pod=~"openclaw.*", namespace="{{ .Values.namespace }}"} / nvidia_smi_memory_free_bytes{pod=~"openclaw.*", namespace="{{ .Values.namespace }}"}) > 0.95
+      for: 5m
+      labels:
+        severity: critical
+        component: openclaw
+      annotations:
+        summary: "OpenClaw GPU memory is exhausted (>95%)"
+        description: "GPU memory usage for pod {{ $labels.pod }}: {{ $value | humanizePercentage }}"
+    {{- end }}
+{{- end }}
+{{- end }}

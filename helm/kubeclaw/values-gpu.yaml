@@ -1,0 +1,72 @@
+# GPU Configuration Overlay for KubeClaw
+# Use with: helm install kubeclaw ./helm/kubeclaw/ -f values.yaml -f values-gpu.yaml
+
+# Enable GPU support
+gpu:
+  enabled: true
+  type: "nvidia.com/gpu"
+  count: 1
+  # Nebius GPU node pool names
+  # Options: gpu-h100, gpu-h200, gpu-b200, gpu-b300, gpu-l40s
+  nodePool: "gpu-h100"
+  resources:
+    limits:
+      nvidia.com/gpu: 1
+
+# Adjust resource requests for GPU nodes
+resources:
+  requests:
+    memory: "8Gi"
+    cpu: "4"
+    ephemeralStorage: "5Gi"
+  limits:
+    memory: "16Gi"
+    cpu: "8"
+    ephemeralStorage: "10Gi"
+
+# Node affinity for GPU nodes
+affinity:
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+        - matchExpressions:
+            # Select nodes in the GPU node pool
+            - key: node.nebius.cloud/node-pool
+              operator: In
+              values:
+                - "gpu-h100"  # Change to match your GPU node pool
+            # Ensure NVIDIA GPUs are available
+            - key: accelerator
+              operator: In
+              values:
+                - "nvidia-h100"  # Change based on GPU type
+
+# Environment variables for GPU acceleration
+env:
+  - name: LOG_LEVEL
+    value: "info"
+  - name: NODE_ENV
+    value: "production"
+  - name: PORT
+    value: "18793"
+  - name: CONTROL_PORT
+    value: "18789"
+  # GPU-specific environment variables
+  - name: CUDA_VISIBLE_DEVICES
+    value: "0"
+  - name: GPU_MEMORY_FRACTION
+    value: "0.95"
+
+# Persistence for GPU inference models
+persistence:
+  enabled: true
+  storageClass: "nebius-ssd"
+  size: 100Gi  # Larger size for model weights
+  mountPath: /home/openclaw
+
+# Labels for GPU workload identification
+labels:
+  app: openclaw
+  version: "1.0.0"
+  workload-type: "gpu-inference"
+  gpu-type: "h100"
