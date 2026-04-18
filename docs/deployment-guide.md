@@ -1,4 +1,7 @@
-# Detailed Deployment Guide
+---
+title: "Deployment Guide"
+description: "Step-by-step guide for deploying KubeClaw to production on Nebius Managed Kubernetes"
+---
 
 Step-by-step guide for deploying KubeClaw to production on Nebius Managed Kubernetes.
 

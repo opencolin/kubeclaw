@@ -1,4 +1,7 @@
-# Troubleshooting Guide
+---
+title: "Troubleshooting"
+description: "Solutions for common KubeClaw deployment and operation issues"
+---
 
 Solutions for common KubeClaw deployment and operation issues.
 

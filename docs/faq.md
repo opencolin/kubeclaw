@@ -1,4 +1,7 @@
-# Frequently Asked Questions
+---
+title: "FAQ"
+description: "Frequently asked questions about KubeClaw and OpenClaw deployment"
+---
 
 ## General
 

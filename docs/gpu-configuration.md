@@ -1,4 +1,7 @@
-# GPU Configuration Guide
+---
+title: "GPU Configuration"
+description: "Configure OpenClaw to use Nebius GPUs for accelerated inference"
+---
 
 Configure OpenClaw to use Nebius GPUs for accelerated inference.
 

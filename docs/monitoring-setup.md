@@ -1,4 +1,7 @@
-# Monitoring & Observability Setup
+---
+title: "Monitoring Setup"
+description: "Configure Prometheus, Grafana, and alerting for OpenClaw"
+---
 
 Configure Prometheus, Grafana, and alerting for OpenClaw.
 

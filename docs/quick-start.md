@@ -1,4 +1,7 @@
-# Quick Start Guide
+---
+title: "Quick Start"
+description: "Deploy OpenClaw to Nebius Managed Kubernetes in 5 minutes"
+---
 
 Deploy OpenClaw to Nebius Managed Kubernetes in **5 minutes**.
 

@@ -1,4 +1,7 @@
-# KubeClaw Architecture Guide
+---
+title: "Architecture"
+description: "KubeClaw deployment architecture and design patterns"
+---
 
 ## Overview
 

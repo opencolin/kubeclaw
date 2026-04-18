@@ -1,4 +1,7 @@
-# Prerequisites & Setup
+---
+title: "Prerequisites"
+description: "Required accounts, tools, and credentials before deploying KubeClaw"
+---
 
 Before deploying KubeClaw, ensure you have the required accounts, tools, and credentials.
 

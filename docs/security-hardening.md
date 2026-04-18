@@ -1,4 +1,7 @@
-# Security Hardening Guide
+---
+title: "Security Hardening"
+description: "Implement defense-in-depth security for OpenClaw on Nebius Kubernetes"
+---
 
 Implement defense-in-depth security for OpenClaw on Nebius Kubernetes.
 
