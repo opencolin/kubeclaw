@@ -19,3 +19,8 @@ secrets.yaml
 .vscode/
 
 *.log
+
+node_modules/
+dist/
+.astro/
+*.tsbuildinfo

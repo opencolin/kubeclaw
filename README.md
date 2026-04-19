@@ -72,15 +72,23 @@ kubeclaw/
 
 ## Documentation
 
-- **[Quick Start](docs/quick-start.md)**: Deploy in 5 minutes
-- **[Architecture](docs/architecture.md)**: Design and deployment patterns
-- **[Prerequisites](docs/prerequisites.md)**: Account setup and tooling
-- **[Deployment Guide](docs/deployment-guide.md)**: Detailed step-by-step instructions
-- **[GPU Configuration](docs/gpu-configuration.md)**: GPU node pools and scheduling
-- **[Monitoring Setup](docs/monitoring-setup.md)**: Prometheus and Grafana integration
-- **[Security Hardening](docs/security-hardening.md)**: Network policies, RBAC, secrets
-- **[Troubleshooting](docs/troubleshooting.md)**: Common issues and solutions
-- **[FAQ](docs/faq.md)**: Frequently asked questions
+The docs are built with [Starlight](https://starlight.astro.build). Browse the source
+in [`src/content/docs/`](src/content/docs/) or run the site locally:
+
+```bash
+npm install
+npm run dev  # http://localhost:4321/kubeclaw
+```
+
+- **[Quick Start](src/content/docs/quick-start.md)**: Deploy in 5 minutes
+- **[Architecture](src/content/docs/architecture.md)**: Design and deployment patterns
+- **[Prerequisites](src/content/docs/prerequisites.md)**: Account setup and tooling
+- **[Deployment Guide](src/content/docs/deployment-guide.md)**: Detailed step-by-step instructions
+- **[GPU Configuration](src/content/docs/gpu-configuration.md)**: GPU node pools and scheduling
+- **[Monitoring Setup](src/content/docs/monitoring-setup.md)**: Prometheus and Grafana integration
+- **[Security Hardening](src/content/docs/security-hardening.md)**: Network policies, RBAC, secrets
+- **[Troubleshooting](src/content/docs/troubleshooting.md)**: Common issues and solutions
+- **[FAQ](src/content/docs/faq.md)**: Frequently asked questions
 
 ## Examples
 
@@ -252,14 +260,14 @@ kubectl logs -n kubeclaw deploy/prometheus
 # Verify ServiceMonitor is targeting OpenClaw pod
 ```
 
-See [Troubleshooting Guide](docs/troubleshooting.md) for detailed solutions.
+See [Troubleshooting Guide](src/content/docs/troubleshooting.md) for detailed solutions.
 
 ## Support & Contributing
 
 For issues, questions, or contributions:
-- 📖 See [FAQ](docs/faq.md)
-- 🐛 Review [Troubleshooting Guide](docs/troubleshooting.md)
-- 📝 Check [Architecture Guide](docs/architecture.md)
+- 📖 See [FAQ](src/content/docs/faq.md)
+- 🐛 Review [Troubleshooting Guide](src/content/docs/troubleshooting.md)
+- 📝 Check [Architecture Guide](src/content/docs/architecture.md)
 
 ## License
 

@@ -1,0 +1,51 @@
+---
+title: KubeClaw
+description: Deploy OpenClaw and NemoClaw on Nebius Managed Kubernetes
+template: splash
+hero:
+  tagline: Production-ready toolkit for deploying OpenClaw/NemoClaw on Nebius Managed Kubernetes — Helm chart, GPU scheduling, monitoring, and security hardening.
+  actions:
+    - text: Quick Start
+      link: /kubeclaw/quick-start/
+      icon: right-arrow
+    - text: View on GitHub
+      link: https://github.com/opencolin/kubeclaw
+      icon: external
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+## Why KubeClaw?
+
+<CardGrid stagger>
+  <Card title="Fast Path to Production" icon="rocket">
+    One-command cluster setup and Helm install. Deploy in under 10 minutes with prerequisites met.
+  </Card>
+  <Card title="GPU-Ready" icon="seti:config">
+    Schedule workloads on Nebius H100, H200, B200, B300, and L40S node pools with correct platform/preset mapping.
+  </Card>
+  <Card title="Monitoring Built In" icon="graph">
+    Prometheus + Grafana + AlertManager with pre-built dashboards and alert rules for OpenClaw.
+  </Card>
+  <Card title="Secure by Default" icon="approve-check">
+    Restricted pod security context, network policies, least-privilege RBAC, and secret management patterns.
+  </Card>
+</CardGrid>
+
+## Next Steps
+
+<CardGrid>
+  <Card title="5-minute Quick Start" icon="rocket">
+    Jump in with the [Quick Start guide](/kubeclaw/quick-start/).
+  </Card>
+  <Card title="Understand the Architecture" icon="puzzle">
+    Review the [architecture and design](/kubeclaw/architecture/) before customizing.
+  </Card>
+  <Card title="Configure GPUs" icon="seti:config">
+    See [GPU configuration](/kubeclaw/gpu-configuration/) for node pool setup and resource requests.
+  </Card>
+  <Card title="Production Checklist" icon="approve-check">
+    Follow the [security hardening guide](/kubeclaw/security-hardening/) before going live.
+  </Card>
+</CardGrid>
